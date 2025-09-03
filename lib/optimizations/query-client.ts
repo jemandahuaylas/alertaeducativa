@@ -1,6 +1,6 @@
 // lib/optimizations/query-client.ts
 import { QueryClient } from '@tanstack/react-query';
-import { persistQueryClient } from '@tanstack/react-query-persist-client';
+import { persistQueryClient } from '@tanstack/query-persist-client-core';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
 // Configuración optimizada de React Query para minimizar llamadas a Supabase
