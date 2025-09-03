@@ -3,10 +3,12 @@
 import { usePathname } from 'next/navigation';
 import AppShell from '@/components/organisms/app-shell';
 import { PageHeaderProvider } from '@/hooks/use-page-header';
+import { DynamicFavicon } from '@/components/dynamic-favicon';
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
+      <DynamicFavicon />
       {children}
     </div>
   );
@@ -15,6 +17,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
 function MainAppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background">
+      <DynamicFavicon />
       <PageHeaderProvider>
         <AppShell>
             {children}
