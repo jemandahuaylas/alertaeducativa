@@ -6,6 +6,7 @@ import type {
   Student, Grade, Section, Assignment, Incident, Permission, RiskFactor, Dropout, NEE, UserProfile, UserProfileFormValues
 } from '@/core/domain/types';
 import * as authService from '@/core/services/auth-service';
+import { supabase } from '@/lib/supabase/client';
 import { 
     getAllData, AppData, addStudent as addStudentService,
     editStudent as editStudentService, deleteStudent as deleteStudentService,
@@ -92,7 +93,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       setIsLoading(false);
     };
+    
     initializeApp();
+
+    // Agregar listener para cambios de estado de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        setSession(session);
+        
+        // Si el usuario se desconecta, limpiar datos
+        if (event === 'SIGNED_OUT') {
+          setData(null);
+        }
+        // Si el usuario se conecta, recargar datos
+        else if (event === 'SIGNED_IN' && session) {
+          const appData = await getAllData();
+          setData(appData);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const currentUserProfile = useMemo(() => {

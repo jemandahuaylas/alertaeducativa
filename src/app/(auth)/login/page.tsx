@@ -32,9 +32,16 @@ export default function LoginPage() {
     try {
       const session = await authService.signIn(email, password);
       if (session) {
+        // Esperar un momento para que el estado se sincronice
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         setSession(session);
         toast({ title: "Inicio de sesión exitoso", description: "Bienvenido(a), redirigiendo al panel..." });
-        router.push('/dashboard');
+        
+        // Esperar un poco más antes de redirigir para asegurar que el estado esté actualizado
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 200);
       } else {
          throw new Error("No se pudo iniciar sesión. Por favor, compruebe sus credenciales.");
       }
