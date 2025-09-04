@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { School } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/hooks/use-settings";
 import { useAppContext } from "@/context/app-context";
@@ -104,9 +105,8 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
-              <Input 
+              <PasswordInput 
                 id="password" 
-                type="password"
                 placeholder="Su contraseña"
                 required 
                 value={password}

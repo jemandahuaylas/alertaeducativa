@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { School, Loader2 } from "lucide-react";
+import { PasswordInput } from '@/components/ui/password-input';
 import { useSettings } from '@/hooks/use-settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -178,7 +179,7 @@ export default function SignupPage() {
                         <FormItem>
                         <FormLabel>Contraseña</FormLabel>
                         <FormControl>
-                            <Input type="password" {...field} disabled={isLoading} />
+                            <PasswordInput {...field} disabled={isLoading} placeholder="Mínimo 6 caracteres" />
                         </FormControl>
                         <FormMessage />
                         </FormItem>

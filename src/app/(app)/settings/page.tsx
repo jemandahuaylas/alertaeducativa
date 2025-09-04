@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Plus, Trash2, Palette, FileCheck, Stethoscope, UserMinus, Users, Shield, Edit, MoreHorizontal, User as UserIcon, Share2, AlertTriangle, Link as LinkIcon, Lock, Mail, MessageSquare, Phone, Database, Settings, ExternalLink, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 import PageHeader from "@/components/page-header";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -157,7 +158,7 @@ function UserForm({ isOpen, onOpenChange, onSave, user }: { isOpen: boolean, onO
                                 <FormItem>
                                     <FormLabel>Contraseña</FormLabel>
                                     <FormControl>
-                                        <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
+                                        <PasswordInput placeholder="Mínimo 6 caracteres" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
