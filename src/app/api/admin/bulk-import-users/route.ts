@@ -44,15 +44,10 @@ export async function POST(request: NextRequest) {
           password: user.password ? '***' : 'MISSING'
         });
         
-        // Create user in auth
+        // Create user in auth (without metadata to avoid unexpected_failure error)
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
           email: user.email,
           password: user.password,
-          user_metadata: {
-            name: user.name,
-            role: user.role,
-            dni: user.dni
-          },
           email_confirm: true // Auto-confirm email
         });
 
@@ -83,16 +78,16 @@ export async function POST(request: NextRequest) {
 
         console.log(`✅ Auth user created: ${user.email} with ID: ${authData.user.id}`);
 
-        // Insert into profiles table
+        // Update the auto-created profile with correct data
         const { error: profileError } = await supabaseAdmin
           .from('profiles')
-          .insert({
-            id: authData.user.id,
+          .update({
             name: user.name,
             email: user.email,
             role: user.role,
             dni: user.dni
-          });
+          })
+          .eq('id', authData.user.id);
 
         if (profileError) {
           console.error(`❌ Profile error for ${user.email}:`, profileError);

@@ -30,6 +30,7 @@ const PREVIEW_ROW_LIMIT = 5;
 export function ImportDocentesModal({ isOpen, onOpenChange, onImport }: ImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
   const [previewData, setPreviewData] = useState<{ headers: string[], rows: ExcelRow[] }>({ headers: [], rows: [] });
   
@@ -171,17 +172,16 @@ export function ImportDocentesModal({ isOpen, onOpenChange, onImport }: ImportMo
     console.log('📋 Modal: About to call onImport with teachers:', newTeachers.length);
     console.log('📋 Modal: Teachers data:', newTeachers);
     
+    setIsImporting(true);
+    
     try {
-      // Call onImport but don't await it - let it run in background
-      onImport(newTeachers).then(() => {
-        console.log('📋 Modal: Import completed, closing modal');
-        handleModalClose(false);
-      }).catch((error) => {
-        console.error('📋 Modal: Import failed:', error);
-        // Don't close modal on error, let user see the error
-      });
+      // Call onImport and close modal immediately
+      await onImport(newTeachers);
+      console.log('📋 Modal: Import completed, closing modal');
+      handleModalClose(false);
     } catch (error) {
       console.error('📋 Modal: Import failed:', error);
+      setIsImporting(false);
       // Don't close modal on error, let user see the error
     }
   }
@@ -296,8 +296,15 @@ export function ImportDocentesModal({ isOpen, onOpenChange, onImport }: ImportMo
             </div>
             <div className="flex gap-2">
                  <Button variant="outline" onClick={() => handleModalClose(false)}>Cancelar</Button>
-                 <Button onClick={handleConfirmImport} disabled={isProcessing || validRows.length === 0}>
-                    Importar {validRows.length > 0 ? `${validRows.length} Docente(s)` : ''}
+                 <Button onClick={handleConfirmImport} disabled={isProcessing || isImporting || validRows.length === 0}>
+                    {isImporting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Importando...
+                      </>
+                    ) : (
+                      `Importar ${validRows.length > 0 ? `${validRows.length} Docente(s)` : ''}`
+                    )}
                 </Button>
             </div>
         </ResponsiveDialogFooter>

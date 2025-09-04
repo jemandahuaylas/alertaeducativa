@@ -139,6 +139,12 @@ export default function GestionDocentesPage() {
         password: person.dni || 'defaultpassword'
       }));
       
+      // Show progress for bulk import
+      toast({
+        title: "Importando Docentes",
+        description: `Procesando ${usersForBulkImport.length} docentes en lote...`
+      });
+      
       // Try the new bulk import method first
       console.log('🚀 Calling bulkImportProfiles...');
       let result = await bulkImportProfiles(usersForBulkImport);
@@ -159,10 +165,10 @@ export default function GestionDocentesPage() {
           try {
             console.log(`📤 Individual import ${currentProgress}/${totalUsers}: ${user.email}`);
             
-            // Show progress toast
+            // Show progress toast with more details
             toast({
               title: "Importando Docentes",
-              description: `Procesando ${currentProgress} de ${totalUsers} docentes...`
+              description: `Procesando ${currentProgress} de ${totalUsers}: ${user.name} (${user.email})`
             });
             
             const result = await addProfile(user, true);
