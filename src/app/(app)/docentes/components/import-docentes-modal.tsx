@@ -75,8 +75,14 @@ export function ImportDocentesModal({ isOpen, onOpenChange, onImport }: ImportMo
           return;
         }
 
+        // Skip empty rows and find data rows
+        const nonEmptyRows = jsonData.filter(row => {
+            const rowValues = Object.values(row);
+            return rowValues.some(value => value !== undefined && value !== null && value.toString().trim() !== '');
+        });
+        
         // Find the first row that looks like data (e.g., has a valid DNI in the second column)
-        const firstDataRowIndex = jsonData.findIndex(row => {
+        const firstDataRowIndex = nonEmptyRows.findIndex(row => {
             const rowValues = Object.values(row);
             const potentialDni = rowValues[1]?.toString().trim();
             return /^\d{8}$/.test(potentialDni);
@@ -84,7 +90,11 @@ export function ImportDocentesModal({ isOpen, onOpenChange, onImport }: ImportMo
         
         // If no data row is found, assume no header and start from the first row.
         const dataStartIndex = firstDataRowIndex === -1 ? 0 : firstDataRowIndex;
-        const dataRows = jsonData.slice(dataStartIndex);
+        const dataRows = nonEmptyRows.slice(dataStartIndex);
+        
+        console.log('Total rows in Excel:', jsonData.length);
+        console.log('Non-empty rows:', nonEmptyRows.length);
+        console.log('Data rows after processing:', dataRows.length);
         
         const columnCount = Math.max(...dataRows.map(row => Object.values(row).length));
         const fileHeaders = Array.from({ length: columnCount }, (_, i) => `Columna ${String.fromCharCode(65 + i)}`);
@@ -152,10 +162,28 @@ export function ImportDocentesModal({ isOpen, onOpenChange, onImport }: ImportMo
     onOpenChange(open);
   };
   
-  const handleConfirmImport = () => {
-    const newTeachers = validRows.map(row => row.data as Omit<UserProfile, 'id'>);
-    onImport(newTeachers);
-    handleModalClose(false);
+  const handleConfirmImport = async () => {
+    const newTeachers = validRows.map(row => ({
+      ...row.data,
+      role: 'Docente' as const
+    }) as Omit<UserProfile, 'id'>);
+    
+    console.log('📋 Modal: About to call onImport with teachers:', newTeachers.length);
+    console.log('📋 Modal: Teachers data:', newTeachers);
+    
+    try {
+      // Call onImport but don't await it - let it run in background
+      onImport(newTeachers).then(() => {
+        console.log('📋 Modal: Import completed, closing modal');
+        handleModalClose(false);
+      }).catch((error) => {
+        console.error('📋 Modal: Import failed:', error);
+        // Don't close modal on error, let user see the error
+      });
+    } catch (error) {
+      console.error('📋 Modal: Import failed:', error);
+      // Don't close modal on error, let user see the error
+    }
   }
 
   return (

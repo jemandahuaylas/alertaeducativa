@@ -74,3 +74,69 @@ create policy "Allow full access for anon users on students" on "students"
 
 -- Otorgar permisos a la clave anónima (anon key)
 grant select, insert, update, delete on table "students" to "anon", "authenticated";
+
+-- 6. Tabla de Perfiles de Usuario
+-- Almacena información adicional de los usuarios autenticados
+CREATE TABLE IF NOT EXISTS "profiles" (
+  "id" uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  "name" text NOT NULL,
+  "email" text NOT NULL UNIQUE,
+  "role" text NOT NULL CHECK (role IN ('Admin', 'Director', 'Subdirector', 'Coordinador', 'Docente', 'Auxiliar')),
+  "dni" varchar(8),
+  "created_at" timestamp with time zone NOT NULL DEFAULT now(),
+  "updated_at" timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- Habilitar Row Level Security para profiles
+ALTER TABLE "profiles" ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de acceso para profiles
+CREATE POLICY "Allow authenticated users to view all profiles" ON "profiles"
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated users to update profiles" ON "profiles"
+  FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated users to insert profiles" ON "profiles"
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated users to delete profiles" ON "profiles"
+  FOR DELETE USING (auth.role() = 'authenticated');
+
+-- Otorgar permisos para profiles
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "profiles" TO "authenticated";
+GRANT SELECT ON TABLE "profiles" TO "anon";
+
+-- Función para actualizar updated_at automáticamente
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger para actualizar updated_at automáticamente
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON "profiles"
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Función para crear perfil automáticamente cuando se registra un usuario
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, email, role, dni)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'role', 'Docente'),
+    NEW.raw_user_meta_data->>'dni'
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger para crear perfil automáticamente
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

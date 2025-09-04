@@ -1,10 +1,9 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,12 +18,13 @@ type GradeFormProps = {
   existingGradeNames: string[];
 };
 
-export function GradeForm({ isOpen, onOpenChange, onSave, existingGradeNames }: GradeFormProps) {
+export default function GradeForm({ isOpen, onOpenChange, onSave, existingGradeNames }: GradeFormProps) {
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [customGrade, setCustomGrade] = useState('');
-  
-  const [availableGrades, setAvailableGrades] = useState(() => initialAvailableGrades.filter(g => !existingGradeNames.includes(g)));
-  
+  const [availableGrades, setAvailableGrades] = useState(() => 
+    initialAvailableGrades.filter(g => !existingGradeNames.includes(g))
+  );
+
   useEffect(() => {
     if (isOpen) {
       setSelectedGrades([]);
@@ -54,123 +54,115 @@ export function GradeForm({ isOpen, onOpenChange, onSave, existingGradeNames }: 
     onSave(selectedGrades);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <ResponsiveDialog open={isOpen} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="sm:max-w-[425px]">
-        <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Crear Nuevos Grados</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>
+    <div 
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+      onClick={() => onOpenChange(false)}
+    >
+      {/* Modal */}
+      <div 
+        className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={() => onOpenChange(false)}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
+        >
+          ×
+        </button>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">Crear Nuevos Grados</h2>
+          <p className="text-sm text-gray-600 mt-1">
             Seleccione uno o más grados para añadirlos, o añada uno personalizado.
-          </ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
-        <div className="space-y-6 py-4">
+          </p>
+        </div>
+
+        <div className="space-y-6">
           {/* Grados Seleccionados */}
           {selectedGrades.length > 0 && (
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-foreground">Grados Seleccionados ({selectedGrades.length})</Label>
+              <Label className="text-sm font-medium">Grados Seleccionados ({selectedGrades.length})</Label>
               <div className="flex flex-wrap gap-2">
                 {selectedGrades.map(grade => (
                   <Badge 
                     key={grade} 
                     variant="default" 
-                    className="px-3 py-1.5 text-sm font-medium cursor-pointer hover:bg-primary/80 transition-colors"
+                    className="cursor-pointer hover:bg-primary/80"
                     onClick={() => toggleGradeSelection(grade)}
                   >
-                    <Check className="w-3 h-3 mr-1.5" />
                     {grade}
+                    <Check className="ml-1 h-3 w-3" />
                   </Badge>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Grados Sugeridos */}
+          {/* Grados Disponibles */}
           <div className="space-y-3">
-            <Label className="text-sm font-medium text-foreground">Grados Disponibles</Label>
-            {availableGrades.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                {availableGrades.map(grade => {
-                  const isSelected = selectedGrades.includes(grade);
-                  return (
-                    <Button
-                      key={grade}
-                      type="button"
-                      variant={isSelected ? 'default' : 'outline'}
-                      size="sm"
-                      className={cn(
-                        "h-10 text-sm font-medium transition-all duration-200",
-                        isSelected 
-                          ? "bg-primary text-primary-foreground shadow-sm" 
-                          : "hover:bg-accent hover:text-accent-foreground border-input"
-                      )}
-                      onClick={() => toggleGradeSelection(grade)}
-                    >
-                      {isSelected && <Check className="w-3 h-3 mr-1.5" />}
-                      {grade}
-                    </Button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-6 px-4 border border-dashed border-muted-foreground/25 rounded-lg bg-muted/20">
-                <p className="text-sm text-muted-foreground">Todos los grados sugeridos ya existen</p>
-              </div>
-            )}
+            <Label className="text-sm font-medium">Grados Disponibles</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {availableGrades.map(grade => (
+                <Button
+                  key={grade}
+                  variant={selectedGrades.includes(grade) ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-10 text-sm transition-all",
+                    selectedGrades.includes(grade) 
+                      ? "bg-primary text-primary-foreground" 
+                      : "hover:bg-muted"
+                  )}
+                  onClick={() => toggleGradeSelection(grade)}
+                >
+                  {selectedGrades.includes(grade) && <Check className="mr-1 h-3 w-3" />}
+                  {grade}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          {/* Añadir Grado Personalizado */}
+          {/* Grado Personalizado */}
           <div className="space-y-3">
-            <Label htmlFor="custom-grade" className="text-sm font-medium text-foreground">Crear Grado Personalizado</Label>
-            <div className="flex items-center gap-2.5">
+            <Label className="text-sm font-medium">Añadir Grado Personalizado</Label>
+            <div className="flex gap-2">
               <Input
-                id="custom-grade"
+                placeholder="Ej: 7mo, Inicial, etc."
                 value={customGrade}
                 onChange={(e) => setCustomGrade(e.target.value)}
-                placeholder="Ej: 7mo, Preescolar, etc."
-                className="flex-1 h-10"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && customGrade.trim()) {
-                    handleAddCustomGrade();
-                  }
-                }}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddCustomGrade()}
+                className="flex-1"
               />
               <Button 
-                type="button" 
-                size="sm" 
-                variant="outline" 
-                onClick={handleAddCustomGrade} 
+                onClick={handleAddCustomGrade}
                 disabled={!customGrade.trim()}
-                className="h-10 px-3 shrink-0"
+                size="sm"
               >
-                <Plus className="h-4 w-4 mr-1.5" />
-                Añadir
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Presiona Enter o haz clic en "Añadir" para crear un grado personalizado</p>
           </div>
         </div>
-        <ResponsiveDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
           <Button 
-            type="button" 
             variant="outline" 
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
           >
             Cancelar
           </Button>
           <Button 
-            type="button" 
-            onClick={handleSubmit} 
+            onClick={handleSubmit}
             disabled={selectedGrades.length === 0}
-            className="w-full sm:w-auto"
           >
-            {selectedGrades.length === 0 
-              ? "Selecciona al menos un grado" 
-              : `Crear ${selectedGrades.length} grado${selectedGrades.length > 1 ? 's' : ''}`
-            }
+            Crear Grados ({selectedGrades.length})
           </Button>
-        </ResponsiveDialogFooter>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -315,9 +315,10 @@ export const addBulkGrades = async (gradeNames: string[]): Promise<Grade[] | nul
         .select();
 
     if (error) {
-        console.error('Error adding grades:', error);
+        console.error('Supabase error in addBulkGrades:', error);
         return null;
     }
+    
     return data.map(g => ({...g, sections: []}));
 };
 

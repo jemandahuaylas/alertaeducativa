@@ -69,7 +69,8 @@ interface AppContextType extends Omit<AppData, 'grades' | 'assignments' | 'nees'
   addRiskFactor: (riskData: RiskFormValues) => Promise<void>;
   editRiskFactor: (riskId: string, riskData: RiskFormValues) => Promise<void>;
   setSettings: (value: AppSettings | ((val: AppSettings) => AppSettings)) => Promise<void>;
-  addProfile: (profileData: UserProfileFormValues) => Promise<void>;
+  addProfile: (profileData: UserProfileFormValues, isBulkImport?: boolean) => Promise<any>;
+  bulkImportProfiles: (profilesData: Omit<UserProfile, 'id'>[]) => Promise<{imported: number; skipped: number; errors: string[]} | null>;
   editProfile: (profileId: string, profileData: UserProfileFormValues) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
 }
@@ -195,7 +196,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addBulkGrades: async (gradeNames) => {
         const newGrades = await addBulkGradesService(gradeNames);
         if (newGrades) {
-            updateState(s => ({ ...s, grades: [...s.grades, ...newGrades].sort((a,b) => a.name.localeCompare(b.name)) }));
+            updateState(s => ({ ...s, grades: [...s.grades, ...newGrades].sort((a, b) => a.name.localeCompare(b.name)) }));
         }
     },
     editGradeName: async (gradeId, newName) => {
@@ -366,15 +367,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
             updateState(s => ({ ...s, settings: { ...s.settings, ...updatedSettings } }));
         }
     },
-    addProfile: async (profileData) => {
-        await authService.signUp(profileData);
+    addProfile: async (profileData, isBulkImport = false) => {
+        console.log(`👤 addProfile called for: ${profileData.email}, isBulkImport: ${isBulkImport}`);
+        
+        if (isBulkImport) {
+            console.log(`📦 Bulk import mode - calling signUpAlternative`);
+            const result = await authService.signUpAlternative(profileData);
+            console.log(`✅ signUpAlternative completed for: ${profileData.email}`, result);
+            // For bulk imports, don't reload profiles immediately to avoid performance issues
+            // The calling function should handle reloading profiles after all imports are done
+            return result;
+        } else {
+            console.log(`👤 Single user mode - calling signUp`);
+            await authService.signUp(profileData);
+            const profiles = await authService.getProfiles();
+            updateState(s => ({ ...s, profiles }));
+        }
+    },
+    bulkImportProfiles: async (profilesData) => {
+        console.log(`📦 bulkImportProfiles called for ${profilesData.length} profiles`);
+        const result = await authService.bulkImportUsers(profilesData);
+        console.log(`✅ bulkImportProfiles completed:`, result);
+        return result;
+    },
+    refreshProfiles: async () => {
         const profiles = await authService.getProfiles();
         updateState(s => ({ ...s, profiles }));
     },
     editProfile: async (profileId, profileData) => {
+        console.log('👤 editProfile called with:', { profileId, profileData });
         const updatedProfile = await authService.editProfile(profileId, profileData);
+        console.log('✅ editProfile result:', updatedProfile);
         if (updatedProfile) {
             updateState(s => ({ ...s, profiles: s.profiles.map(p => p.id === profileId ? updatedProfile : p) }));
+            console.log('🔄 Profile updated in state');
+        } else {
+            console.error('❌ Failed to update profile');
         }
     },
     deleteProfile: async (profileId) => {

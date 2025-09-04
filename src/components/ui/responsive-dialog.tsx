@@ -24,11 +24,14 @@ import {
 
 const ResponsiveDialog = ({ ...props }) => {
   const isMobile = useIsMobile();
+  console.log('ResponsiveDialog - isMobile:', isMobile, 'props:', props);
   
   if (isMobile) {
+    console.log('Rendering Sheet for mobile');
     return <Sheet {...props} />;
   }
 
+  console.log('Rendering Dialog for desktop');
   return <Dialog {...props} />;
 };
 

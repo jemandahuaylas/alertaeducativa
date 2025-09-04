@@ -30,7 +30,7 @@ const PERSONNEL_PER_PAGE = 10;
 export default function GestionDocentesPage() {
   const { personnel, assignments } = usePersonnel();
   const { grades } = useGradesAndSections();
-  const { editProfile, deleteProfile, addProfile } = useAppContext();
+  const { editProfile, deleteProfile, addProfile, bulkImportProfiles, profiles, refreshProfiles } = useAppContext();
   const { toast } = useToast();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -65,11 +65,16 @@ export default function GestionDocentesPage() {
   };
 
   const handleSave = async (personnelData: PersonnelFormValues) => {
+    console.log('💾 handleSave called with data:', personnelData);
+    
     try {
         if (personnelData.id) {
-            await editProfile(personnelData.id, personnelData);
+            console.log('📝 Editing existing profile:', personnelData.id);
+            const result = await editProfile(personnelData.id, personnelData);
+            console.log('✅ Edit result:', result);
             toast({ title: "Personal Actualizado", description: "Los datos del personal han sido actualizados." });
         } else {
+            console.log('➕ Creating new profile');
             const dataToSave = {
               ...personnelData,
               password: personnelData.dni,
@@ -77,8 +82,10 @@ export default function GestionDocentesPage() {
             await addProfile(dataToSave);
             toast({ title: "Personal Creado", description: "El nuevo miembro del personal ha sido añadido y tiene acceso al sistema." });
         }
+        console.log('🔒 Closing form modal');
         setIsFormOpen(false);
     } catch (error) {
+        console.error('❌ Error in handleSave:', error);
         toast({
             variant: "destructive",
             title: "Error al guardar",
@@ -94,9 +101,140 @@ export default function GestionDocentesPage() {
     }
   };
 
-  const handleImport = async (newPersonnel: Omit<UserProfile, 'id' | 'role' | 'name'>[]) => {
-    // await importPersonnel(newPersonnel); // This needs to be adapted for the new user profile system
-    setIsImportModalOpen(false);
+  const handleImport = async (newPersonnel: Omit<UserProfile, 'id'>[]) => {
+    console.log('=== STARTING BULK IMPORT PROCESS ===');
+    console.log('Total personnel to import:', newPersonnel.length);
+    console.log('Personnel data:', newPersonnel);
+    
+    // Show initial toast to inform user about the process
+    toast({
+      title: "Iniciando Importación",
+      description: `Procesando ${newPersonnel.length} docentes...`
+    });
+    
+    try {
+      // Refresh profiles first to get the latest data
+      console.log('Refreshing profiles before import to get latest data...');
+      await refreshProfiles();
+      
+      // Filter out users that already exist before processing
+      const existingEmails = new Set(profiles.map(p => p.email.toLowerCase()));
+      console.log('Existing emails:', Array.from(existingEmails));
+      
+      const usersToImport = newPersonnel.filter(person => {
+        if (existingEmails.has(person.email.toLowerCase())) {
+          console.log(`User with email ${person.email} already exists, skipping...`);
+          return false;
+        }
+        return true;
+      });
+      
+      console.log(`Processing ${usersToImport.length} new users for bulk import...`);
+      console.log('Users to import:', usersToImport.map(u => ({ name: u.name, email: u.email, dni: u.dni })));
+      
+      // Prepare data for bulk import
+      const usersForBulkImport = usersToImport.map(person => ({
+        ...person,
+        role: 'Docente' as const,
+        password: person.dni || 'defaultpassword'
+      }));
+      
+      // Try the new bulk import method first
+      console.log('🚀 Calling bulkImportProfiles...');
+      let result = await bulkImportProfiles(usersForBulkImport);
+      
+      // If bulk import fails or returns all errors, fall back to individual imports
+      if (!result || (result.imported === 0 && result.errors.length === usersForBulkImport.length)) {
+        console.log('⚠️ Bulk import failed, falling back to individual imports...');
+        
+        let importedCount = 0;
+        let skippedCount = 0;
+        const errors: string[] = [];
+        
+        for (let i = 0; i < usersForBulkImport.length; i++) {
+          const user = usersForBulkImport[i];
+          const currentProgress = i + 1;
+          const totalUsers = usersForBulkImport.length;
+          
+          try {
+            console.log(`📤 Individual import ${currentProgress}/${totalUsers}: ${user.email}`);
+            
+            // Show progress toast
+            toast({
+              title: "Importando Docentes",
+              description: `Procesando ${currentProgress} de ${totalUsers} docentes...`
+            });
+            
+            const result = await addProfile(user, true);
+            console.log(`✅ Import result for ${user.email}:`, result);
+            
+            // Check if the result indicates the user already exists
+            if (result && typeof result === 'object' && result.id === 'existing-user') {
+              skippedCount++;
+              console.log(`⏭️ User ${user.email} already exists, counting as skipped`);
+            } else {
+              importedCount++;
+              console.log(`✅ Successfully imported: ${user.email}`);
+            }
+            
+            // Add delay between imports
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+          } catch (error) {
+            console.error(`❌ Error importing ${user.email}:`, error);
+            if (error instanceof Error && 
+                (error.message.includes('already registered') || 
+                 error.message.includes('already exists') ||
+                 error.message.includes('duplicate'))) {
+              skippedCount++;
+              console.log(`⏭️ User ${user.email} already exists, counting as skipped`);
+            } else {
+              errors.push(`${user.email}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+          }
+        }
+        
+        result = {
+          imported: importedCount,
+          skipped: skippedCount,
+          errors: errors
+        };
+      }
+      
+      if (!result) {
+        throw new Error('All import methods failed');
+      }
+      
+      console.log(`\n=== BULK IMPORT SUMMARY ===`);
+      console.log(`Imported: ${result.imported}`);
+      console.log(`Skipped: ${result.skipped}`);
+      console.log(`Errors: ${result.errors.length}`);
+      console.log(`Error details:`, result.errors);
+      
+      // Refresh profiles after import
+      console.log('Refreshing profiles after import...');
+      await refreshProfiles();
+      
+      const successMessage = `Se importaron ${result.imported} docentes correctamente.`;
+      const skipMessage = result.skipped > 0 ? ` ${result.skipped} registros fueron omitidos.` : '';
+      const errorMessage = result.errors.length > 0 ? ` Errores: ${result.errors.slice(0, 3).join(', ')}${result.errors.length > 3 ? '...' : ''}` : '';
+      
+      toast({
+        title: "Importación Completada",
+        description: successMessage + skipMessage + errorMessage
+      });
+      
+    } catch (error) {
+      console.error('Critical error during bulk import:', error);
+      toast({
+        variant: "destructive",
+        title: "Error en la importación",
+        description: error instanceof Error ? error.message : "No se pudieron importar los docentes."
+      });
+    } finally {
+      console.log('=== BULK IMPORT PROCESS COMPLETED ===');
+      // Modal will close itself after import completes
+    }
   }
 
   const handleDownload = (format: 'pdf' | 'excel') => {

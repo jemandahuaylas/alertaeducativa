@@ -10,19 +10,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { Grade, Section } from '@/core/domain/types';
 import { useGradesAndSections } from '@/hooks/use-grades-and-sections';
 import { useStudents } from '@/hooks/use-students';
-import { GradeForm } from './grade-form';
+import GradeForm from './grade-form';
 import { SectionForm } from './section-form';
 import { EditGradeForm } from './edit-grade-form';
 import FloatingActionButton from '@/components/molecules/floating-action-button';
 import { EditSectionForm } from './edit-section-form';
 import { useAppContext } from '@/context/app-context';
 import { usePersonnel } from '@/hooks/use-teachers';
-import ResourceToolbar from '@/components/organisms/resource-toolbar';
-import ResourceListView from '@/components/organisms/resource-list-view';
-import GradeGridCard from './grade-grid-card';
-import GradeListCard from './grade-list-card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import GradeTable from './grade-table';
 
 export default function GradeList() {
+  console.log('GradeList component is rendering!');
+  
   const { 
     grades, 
     addBulkGrades, 
@@ -36,6 +36,8 @@ export default function GradeList() {
   const { currentUserProfile } = useAppContext();
   const { assignments } = usePersonnel();
   
+  console.log('Hooks loaded, currentUserProfile:', currentUserProfile);
+  
   const [isGradeFormOpen, setIsGradeFormOpen] = useState(false);
   const [isEditGradeFormOpen, setIsEditGradeFormOpen] = useState(false);
   const [isSectionFormOpen, setIsSectionFormOpen] = useState(false);
@@ -48,9 +50,14 @@ export default function GradeList() {
   
   // New state for search and view
   const [searchQuery, setSearchQuery] = useState('');
-  const [view, setView] = useState<'grid' | 'list'>('grid');
   
   const isRestrictedUser = currentUserProfile?.role === 'Docente' || currentUserProfile?.role === 'Auxiliar';
+  
+  // Debug: Verificar perfil del usuario actual
+  console.log('Current user profile:', currentUserProfile);
+  console.log('User role:', currentUserProfile?.role);
+  console.log('Is restricted user:', isRestrictedUser);
+  console.log('Button should be visible:', !isRestrictedUser);
 
   const gradesForCurrentUser = useMemo(() => {
     if (!isRestrictedUser) {
@@ -85,6 +92,8 @@ export default function GradeList() {
   const handleAddGrade = () => {
     setIsGradeFormOpen(true);
   };
+
+
 
   const handleEditGrade = (grade: Omit<Grade, 'sections'>) => {
     setGradeToEdit(grade);
@@ -150,98 +159,117 @@ export default function GradeList() {
     return students.filter(student => student.gradeId === gradeId && student.sectionId === sectionId).length;
   }, [sectionToDelete, students]);
 
-  // Render functions for ResourceListView
-  const renderGridItem = (grade: Grade, index: number) => (
-    <GradeGridCard
-      key={grade.id}
-      grade={grade}
-      sections={grade.sections}
-      isRestrictedUser={isRestrictedUser}
-      onEditGrade={handleEditGrade}
-      onDeleteGrade={(gradeId) => setGradeToDelete(grades.find(g => g.id === gradeId) || null)}
-      onAddSection={handleAddSection}
-    />
-  );
+  const handleDeleteSectionClick = (sectionId: string) => {
+    const section = grades
+      .flatMap(g => g.sections.map(s => ({ ...s, gradeId: g.id })))
+      .find(s => s.id === sectionId);
+    if (section) {
+      setSectionToDelete({ gradeId: section.gradeId, sectionId });
+    }
+  };
 
-  const renderListItem = (grade: Grade, index: number) => (
-    <GradeListCard
-      key={grade.id}
-      grade={grade}
-      sections={grade.sections}
-      isRestrictedUser={isRestrictedUser}
-      onEditGrade={handleEditGrade}
-      onDeleteGrade={(gradeId) => setGradeToDelete(grades.find(g => g.id === gradeId) || null)}
-      onAddSection={handleAddSection}
-    />
-  );
-
-  if (gradesForCurrentUser.length === 0) {
-    return (
-        <>
-            <PageHeader
-                title="Gestión de Grados y Secciones"
-                actions={!isRestrictedUser ? (
-                    <Button onClick={handleAddGrade}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Crear Grado
-                    </Button>
-                ) : undefined}
-            />
-            <Card className="text-center py-12">
-                <CardHeader>
-                    <CardTitle>{isRestrictedUser ? 'No tiene secciones asignadas' : 'No hay grados creados'}</CardTitle>
-                    <CardDescription>
-                    {isRestrictedUser 
-                        ? 'Póngase en contacto con un administrador para que le asigne a una o más secciones.'
-                        : 'Comience por crear un nuevo grado para organizar a sus estudiantes.'
-                    }
-                    </CardDescription>
-                </CardHeader>
-            {!isRestrictedUser && (
-                <CardContent>
-                    <Button onClick={handleAddGrade}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Crear Primer Grado
-                    </Button>
-                </CardContent>
-            )}
-            </Card>
-        </>
-    );
-  }
-
-  return (
+  const renderEmptyState = () => (
     <>
       <PageHeader
         title="Gestión de Grados y Secciones"
         actions={!isRestrictedUser ? (
+          <Button onClick={handleAddGrade}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Crear Grado
+          </Button>
+        ) : undefined}
+      />
+      <Card className="text-center py-12">
+        <CardHeader>
+          <CardTitle>{isRestrictedUser ? 'No tiene secciones asignadas' : 'No hay grados creados'}</CardTitle>
+          <CardDescription>
+            {isRestrictedUser 
+              ? 'Póngase en contacto con un administrador para que le asigne a una o más secciones.'
+              : 'Comience por crear un nuevo grado para organizar a sus estudiantes.'
+            }
+          </CardDescription>
+        </CardHeader>
+        {!isRestrictedUser && (
+          <CardContent>
             <Button onClick={handleAddGrade}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Crear Grado
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Crear Primer Grado
             </Button>
+          </CardContent>
+        )}
+      </Card>
+    </>
+  );
+
+  const renderGradesList = () => (
+    <>
+      <PageHeader
+        title="Gestión de Grados y Secciones"
+        actions={!isRestrictedUser ? (
+          <Button onClick={handleAddGrade}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Crear Grado
+          </Button>
         ) : undefined}
       />
 
-      <ResourceToolbar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="Buscar por nombre de grado o sección..."
-        view={view}
-        onViewChange={setView}
-        onFilterClick={() => {}} // No filters for now
-        showFilterButton={false}
-      />
+      <div className="mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Buscar por nombre de grado o sección..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            />
+          </div>
+        </div>
+      </div>
 
-      <ResourceListView<Grade>
-        items={filteredGrades}
-        renderGridItem={renderGridItem}
-        renderListItem={renderListItem}
-        view={view}
-        isLoading={false}
-        noResultsMessage={searchQuery ? "No se encontraron grados con esos términos de búsqueda" : "No hay grados disponibles"}
-      />
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Grado</TableHead>
+              <TableHead>Estudiantes</TableHead>
+              <TableHead>Secciones</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredGrades.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  {searchQuery ? "No se encontraron grados con esos términos de búsqueda" : "No hay grados disponibles"}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredGrades.map((grade) => (
+                <GradeTable
+                  key={grade.id}
+                  grade={grade}
+                  sections={grade.sections}
+                  isRestrictedUser={isRestrictedUser}
+                  onEditGrade={handleEditGrade}
+                  onDeleteGrade={(gradeId) => setGradeToDelete(grades.find(g => g.id === gradeId) || null)}
+                  onAddSection={handleAddSection}
+                  onEditSection={(section) => handleEditSection(section, grade.id)}
+                  onDeleteSection={handleDeleteSectionClick}
+                />
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {!isRestrictedUser && <FloatingActionButton onClick={handleAddGrade} />}
+    </>
+  );
+
+  return (
+    <>
+      {gradesForCurrentUser.length === 0 ? renderEmptyState() : renderGradesList()}
       
       <GradeForm
         isOpen={isGradeFormOpen}
@@ -273,53 +301,55 @@ export default function GradeList() {
         section={selectedSection}
       />
 
-        <AlertDialog open={!!gradeToDelete} onOpenChange={(open) => !open && setGradeToDelete(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>
-                    {studentCountInGradeToDelete > 0 ? 'No se puede eliminar el grado' : '¿Está seguro?'}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                    {studentCountInGradeToDelete > 0
-                    ? `Este grado contiene ${studentCountInGradeToDelete} estudiante(s) y no puede ser eliminado. Primero debe mover o eliminar a los estudiantes.`
-                    : 'Esta acción no se puede deshacer. Esto eliminará permanentemente el grado y todas sus secciones.'}
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setGradeToDelete(null)}>
-                    {studentCountInGradeToDelete > 0 ? 'Entendido' : 'Cancelar'}
-                </AlertDialogCancel>
-                {studentCountInGradeToDelete === 0 && (
-                    <AlertDialogAction onClick={handleDeleteGrade} className="bg-destructive hover:bg-destructive/90">
-                    Eliminar
-                    </AlertDialogAction>
-                )}
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+      <AlertDialog open={!!gradeToDelete} onOpenChange={(open) => !open && setGradeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {studentCountInGradeToDelete > 0 ? 'No se puede eliminar el grado' : '¿Está seguro?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {studentCountInGradeToDelete > 0
+                ? `Este grado contiene ${studentCountInGradeToDelete} estudiante(s) y no puede ser eliminado. Primero debe mover o eliminar a los estudiantes.`
+                : 'Esta acción no se puede deshacer. Esto eliminará permanentemente el grado y todas sus secciones.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setGradeToDelete(null)}>
+              {studentCountInGradeToDelete > 0 ? 'Entendido' : 'Cancelar'}
+            </AlertDialogCancel>
+            {studentCountInGradeToDelete === 0 && (
+              <AlertDialogAction onClick={handleDeleteGrade} className="bg-destructive hover:bg-destructive/90">
+                Eliminar
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
         
-        <AlertDialog open={!!sectionToDelete} onOpenChange={(open) => !open && setSectionToDelete(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>
-                    {studentCountInSectionToDelete > 0 ? 'No se puede eliminar la sección' : '¿Está seguro?'}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                    {studentCountInSectionToDelete > 0
-                    ? `Esta sección contiene ${studentCountInSectionToDelete} estudiante(s) y no puede ser eliminada. Primero debe mover o eliminar a los estudiantes.`
-                    : 'Esta acción no se puede deshacer. Esto eliminará permanentemente la sección.'}
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setSectionToDelete(null)}>
-                    {studentCountInSectionToDelete > 0 ? 'Entendido' : 'Cancelar'}
-                </AlertDialogCancel>
-                {studentCountInSectionToDelete === 0 && (
-                     <AlertDialogAction onClick={handleDeleteSection} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
-                )}
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+      <AlertDialog open={!!sectionToDelete} onOpenChange={(open) => !open && setSectionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {studentCountInSectionToDelete > 0 ? 'No se puede eliminar la sección' : '¿Está seguro?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {studentCountInSectionToDelete > 0
+                ? `Esta sección contiene ${studentCountInSectionToDelete} estudiante(s) y no puede ser eliminada. Primero debe mover o eliminar a los estudiantes.`
+                : 'Esta acción no se puede deshacer. Esto eliminará permanentemente la sección.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSectionToDelete(null)}>
+              {studentCountInSectionToDelete > 0 ? 'Entendido' : 'Cancelar'}
+            </AlertDialogCancel>
+            {studentCountInSectionToDelete === 0 && (
+              <AlertDialogAction onClick={handleDeleteSection} className="bg-destructive hover:bg-destructive/90">
+                Eliminar
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -23,7 +23,7 @@ import { useGradesAndSections } from '@/hooks/use-grades-and-sections';
 export default function DocenteList() {
   const { personnel, assignments } = usePersonnel();
   const { grades } = useGradesAndSections();
-  const { editProfile, deleteProfile, addProfile } = useAppContext();
+  const { editProfile, deleteProfile, addProfile, profiles, refreshProfiles } = useAppContext();
   const { toast } = useToast();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -78,8 +78,55 @@ export default function DocenteList() {
   };
 
   const handleImport = async (newPersonnel: Omit<UserProfile, 'id'>[]) => {
-    // This needs to be adapted for the new user profile system
-    setIsImportModalOpen(false);
+    try {
+      let importedCount = 0;
+      let skippedCount = 0;
+      
+      for (const person of newPersonnel) {
+        try {
+          // Check if user already exists by email
+          const existingUser = personnel.find(p => p.email.toLowerCase() === person.email.toLowerCase());
+          
+          if (existingUser) {
+            console.log(`User with email ${person.email} already exists, skipping...`);
+            skippedCount++;
+            continue;
+          }
+          
+          const dataToSave = {
+            ...person,
+            role: 'Docente' as const,
+            password: person.dni || 'defaultpassword'
+          };
+          await addProfile(dataToSave, true);
+          importedCount++;
+        } catch (error) {
+          console.error('Error importing teacher:', error);
+          // Check if it's a duplicate user error
+          if (error instanceof Error && error.message.includes('User already registered')) {
+            console.log(`User ${person.email} already registered, skipping...`);
+          }
+          skippedCount++;
+        }
+      }
+      
+      // Refresh profiles after all imports are done
+      await refreshProfiles();
+      
+      toast({
+        title: "Importación Completada",
+        description: `Se importaron ${importedCount} docentes correctamente. ${skippedCount > 0 ? `${skippedCount} registros fueron omitidos (usuarios duplicados o errores).` : ''}`
+      });
+      
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error en la importación",
+        description: error instanceof Error ? error.message : "No se pudieron importar los docentes."
+      });
+    } finally {
+      setIsImportModalOpen(false);
+    }
   }
   
   const handleDeleteConfirm = async () => {
