@@ -18,7 +18,7 @@ type StudentSearchModalProps = {
   onSelectStudent: (student: Student) => void;
 };
 
-export default function StudentSearchModal({ isOpen, onOpenChange, onSelectStudent }: StudentSearchModalProps) {
+export function StudentSearchModal({ isOpen, onOpenChange, onSelectStudent }: StudentSearchModalProps) {
   const containerRef = useKeyboardScrollViewport();
   const [searchQuery, setSearchQuery] = useState('');
   const [students, setStudents] = useState<Student[]>([]);
@@ -27,7 +27,7 @@ export default function StudentSearchModal({ isOpen, onOpenChange, onSelectStude
 
   const searchStudents = useCallback(async (query: string) => {
     if (query.length < 3) {
-      setSearchResults([]);
+      setStudents([]);
       return;
     }
     setIsLoading(true);
@@ -48,7 +48,7 @@ export default function StudentSearchModal({ isOpen, onOpenChange, onSelectStude
 
     if (error) {
         console.error('Error searching students:', error);
-        setSearchResults([]);
+        setStudents([]);
     } else {
         const formattedResults = data.map((s: any) => ({
           id: s.id,
@@ -63,7 +63,7 @@ export default function StudentSearchModal({ isOpen, onOpenChange, onSelectStude
           gradeId: '', // These are not available from this query but might be needed
           sectionId: '', // depending on how the Student type is used elsewhere.
         }));
-        setSearchResults(formattedResults);
+        setStudents(formattedResults);
     }
     setIsLoading(false);
   }, []);
@@ -76,7 +76,7 @@ export default function StudentSearchModal({ isOpen, onOpenChange, onSelectStude
   useEffect(() => {
     if (!isOpen) {
         setSearchQuery('');
-        setSearchResults([]);
+        setStudents([]);
     }
   }, [isOpen]);
 
@@ -106,8 +106,8 @@ export default function StudentSearchModal({ isOpen, onOpenChange, onSelectStude
                 <div className="flex items-center justify-center p-8">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-            ) : searchResults.length > 0 ? (
-                searchResults.map(student => (
+            ) : students.length > 0 ? (
+                students.map(student => (
                 <div 
                     key={student.id} 
                     onClick={() => onSelectStudent(student)}

@@ -338,6 +338,14 @@ function SecuritySettings() {
     );
 }
 
+type ConfigField = {
+    key: string;
+    label: string;
+    type: 'text' | 'password' | 'email';
+    required: boolean;
+    placeholder?: string;
+};
+
 function IntegrationSettings() {
     const { settings, setSettings } = useSettings();
     const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -353,7 +361,7 @@ function IntegrationSettings() {
             connected: settings.isDriveConnected,
             category: 'Almacenamiento',
             features: ['Backup automático de archivos adjuntos', 'Organización en carpetas por tipo de documento', 'Acceso desde cualquier dispositivo', 'Sincronización en tiempo real'],
-            configFields: [],
+            configFields: [] as ConfigField[],
             accountInfo: settings.isDriveConnected ? {
                 email: settings.driveAccountEmail,
                 storageUsed: settings.driveStorageUsed,
