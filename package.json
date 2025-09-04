@@ -11,7 +11,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "pre-deploy": "node scripts/pre-deploy-check.js",
-    "deploy:vercel": "npm run pre-deploy && vercel --prod"
+    "vercel:check": "node scripts/vercel-pre-deploy-check.js",
+    "deploy:vercel": "npm run vercel:check && vercel --prod"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
