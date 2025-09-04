@@ -47,16 +47,20 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     if (settings?.primaryColor) {
-      const hslColor = hexToHSL(settings.primaryColor);
-      document.documentElement.style.setProperty('--primary', hslColor);
+      const hsl = hexToHSL(settings.primaryColor);
       
-      const [h, s] = hslColor.split(' ').map(parseFloat);
-      const accentForeground = `${h} ${s}% ${Math.max(40, parseFloat(hslColor.split(' ')[2]) - 10)}%`;
-      const accent = `${h} ${s}% 95%`;
-
-      document.documentElement.style.setProperty('--accent-foreground', accentForeground);
-      document.documentElement.style.setProperty('--accent', accent);
-      document.documentElement.style.setProperty('--ring', hslColor);
+      // Aplicar una transición suave para evitar parpadeo
+      const root = document.documentElement;
+      root.style.transition = 'none'; // Temporalmente deshabilitar transiciones
+      
+      root.style.setProperty('--primary', hsl);
+      root.style.setProperty('--accent', hsl);
+      root.style.setProperty('--ring', hsl);
+      
+      // Restaurar transiciones después de un frame
+      requestAnimationFrame(() => {
+        root.style.transition = '';
+      });
     }
   }, [settings?.primaryColor]);
 

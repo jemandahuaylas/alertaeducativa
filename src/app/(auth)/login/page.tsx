@@ -12,6 +12,7 @@ import { School } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/hooks/use-settings";
 import { useAppContext } from "@/context/app-context";
+import { useKeyboardScrollViewport } from "@/hooks/use-keyboard-scroll";
 import * as authService from '@/core/services/auth-service';
 import Image from "next/image";
 
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { settings } = useSettings();
   const { setSession } = useAppContext();
+  const containerRef = useKeyboardScrollViewport();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,7 +59,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-4">
+    <div ref={containerRef} className="w-full max-w-md mx-auto p-4">
         <div className="flex flex-col items-center justify-center text-center mb-6">
             <div className="mb-4">
                 {settings.logoUrl ? (

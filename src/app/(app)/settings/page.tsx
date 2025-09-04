@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Trash2, Palette, FileCheck, Stethoscope, UserMinus, Users, Shield, Edit, MoreHorizontal, User as UserIcon, Share2, AlertTriangle, Link as LinkIcon, Lock } from 'lucide-react';
+import { Plus, Trash2, Palette, FileCheck, Stethoscope, UserMinus, Users, Shield, Edit, MoreHorizontal, User as UserIcon, Share2, AlertTriangle, Link as LinkIcon, Lock, Mail, MessageSquare, Phone, Database, Settings, ExternalLink, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import PageHeader from "@/components/page-header";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import { ResponsiveDropdownMenu, ResponsiveDropdownMenuContent, ResponsiveDropdo
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle } from '@/components/ui/responsive-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useKeyboardScrollViewport } from '@/hooks/use-keyboard-scroll';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppContext } from '@/context/app-context';
 import type { UserProfile, UserProfileFormValues } from '@/core/domain/types';
@@ -59,6 +60,7 @@ type AdminUserFormValues = z.infer<typeof userSchema>;
 
 
 function UserForm({ isOpen, onOpenChange, onSave, user }: { isOpen: boolean, onOpenChange: (isOpen: boolean) => void, onSave: (user: UserProfileFormValues) => void, user?: UserProfile }) {
+    const containerRef = useKeyboardScrollViewport();
     const getAdminDefaults = (user?: UserProfile): AdminUserFormValues => {
         if (user && ['Admin', 'Director', 'Subdirector', 'Coordinador'].includes(user.role)) {
             return {
@@ -89,7 +91,7 @@ function UserForm({ isOpen, onOpenChange, onSave, user }: { isOpen: boolean, onO
 
     return (
         <ResponsiveDialog open={isOpen} onOpenChange={onOpenChange}>
-            <ResponsiveDialogContent className="sm:max-w-[425px]">
+            <ResponsiveDialogContent ref={containerRef} className="sm:max-w-[425px]">
                 <ResponsiveDialogHeader>
                     <ResponsiveDialogTitle>{user ? 'Editar Usuario' : 'Añadir Nuevo Usuario'}</ResponsiveDialogTitle>
                     <ResponsiveDialogDescription>
@@ -204,6 +206,7 @@ function CustomizationForm() {
       title: "Guardado Exitoso",
       description: "Sus ajustes de personalización han sido guardados.",
     });
+    // Recargar la página para aplicar los cambios de color
     window.location.reload();
   }
   
@@ -280,7 +283,9 @@ function CustomizationForm() {
                       variant="outline"
                       className="h-8 w-8 rounded-full p-0"
                       style={{ backgroundColor: color }}
-                      onClick={() => form.setValue("primaryColor", color, { shouldValidate: true })}
+                      onClick={() => {
+                        form.setValue("primaryColor", color, { shouldValidate: true });
+                      }}
                     />
                   ))}
                 </div>
@@ -334,54 +339,379 @@ function SecuritySettings() {
 
 function IntegrationSettings() {
     const { settings, setSettings } = useSettings();
+    const [configDialogOpen, setConfigDialogOpen] = useState(false);
+    const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
+    const [configForm, setConfigForm] = useState<Record<string, string>>({});
 
-    const handleConnectDrive = () => {
-        // In a real app, this would redirect to Google's OAuth screen
-        setSettings(prev => ({ ...prev, isDriveConnected: true }));
+    const integrations = [
+        {
+            id: 'google-drive',
+            name: 'Google Drive',
+            description: 'Almacene automáticamente documentos y archivos adjuntos en Google Drive. Esta integración se utiliza específicamente en la gestión de permisos y estudiantes con NEE para adjuntar y organizar archivos importantes.',
+            icon: Database,
+            connected: settings.isDriveConnected,
+            category: 'Almacenamiento',
+            features: ['Backup automático de archivos adjuntos', 'Organización en carpetas por tipo de documento', 'Acceso desde cualquier dispositivo', 'Sincronización en tiempo real'],
+            configFields: [],
+            accountInfo: settings.isDriveConnected ? {
+                email: settings.driveAccountEmail,
+                storageUsed: settings.driveStorageUsed,
+                storageLimit: settings.driveStorageLimit,
+                lastSync: settings.driveLastSync
+            } : undefined
+        }
+    ];
+
+    // Configuraciones de notificaciones removidas para simplificar la interfaz
+
+    const handleConnect = (integrationId: string) => {
+        const integration = integrations.find(i => i.id === integrationId);
+        if (!integration) return;
+
+        if (integration.configFields.length > 0) {
+            setSelectedIntegration(integrationId);
+            setConfigForm({});
+            setConfigDialogOpen(true);
+        } else {
+            // Implementación específica para Google Drive
+            if (integrationId === 'google-drive') {
+                handleConnectGoogleDrive();
+            } else {
+                // Direct connection for other services without config
+                const updateKey = `is${integrationId.split('-').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join('')}Connected` as keyof typeof settings;
+                
+                setSettings(prev => ({ ...prev, [updateKey]: true }));
+                toast({
+                    title: `${integration.name} Conectado`,
+                    description: "La integración ha sido activada exitosamente.",
+                });
+            }
+        }
+    };
+
+    const handleConnectGoogleDrive = async () => {
+        try {
+            // Simular proceso de autenticación OAuth con Google Drive
+            toast({
+                title: "Conectando con Google Drive...",
+                description: "Redirigiendo a la página de autorización de Google.",
+            });
+
+            // En una aplicación real, esto redirigiría a Google OAuth
+            // window.location.href = `https://accounts.google.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=https://www.googleapis.com/auth/drive.file&response_type=code`;
+            
+            // Simular delay de autenticación
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Simular éxito de conexión
+            setSettings(prev => ({ 
+                ...prev, 
+                isDriveConnected: true,
+                driveAccountEmail: 'usuario@ejemplo.com',
+                driveStorageUsed: '2.3 GB',
+                driveStorageLimit: '15 GB',
+                driveLastSync: new Date().toISOString()
+            }));
+            
+            toast({
+                title: "Google Drive Conectado",
+                description: "Su cuenta ha sido conectada exitosamente. Los documentos se guardarán automáticamente.",
+            });
+            
+            // Crear carpeta de la aplicación en Drive (simulado)
+            await createAppFolderInDrive();
+            
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Error de Conexión",
+                description: "No se pudo conectar con Google Drive. Inténtelo nuevamente.",
+            });
+        }
+    };
+
+    const createAppFolderInDrive = async () => {
+        // Simular creación de carpeta en Google Drive
         toast({
-            title: "Google Drive Conectado",
-            description: "Su cuenta ha sido conectada exitosamente.",
+            title: "Configurando almacenamiento",
+            description: "Creando carpeta 'Alerta Educativa' en su Google Drive...",
+        });
+        
+        // En una aplicación real, aquí se haría la llamada a la API de Google Drive
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        toast({
+            title: "Almacenamiento configurado",
+            description: "Se ha creado la carpeta 'Alerta Educativa' en su Google Drive para organizar los documentos.",
         });
     };
 
-    const handleDisconnectDrive = () => {
-        setSettings(prev => ({ ...prev, isDriveConnected: false }));
+    const handleDisconnect = (integrationId: string) => {
+        const integration = integrations.find(i => i.id === integrationId);
+        if (!integration) return;
+
+        if (integrationId === 'google-drive') {
+            handleDisconnectGoogleDrive();
+        } else {
+            const updateKey = `is${integrationId.split('-').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join('')}Connected` as keyof typeof settings;
+            
+            setSettings(prev => ({ ...prev, [updateKey]: false }));
+            toast({
+                variant: "destructive",
+                title: `${integration.name} Desconectado`,
+                description: "La integración ha sido desactivada.",
+            });
+        }
+    };
+
+    const handleDisconnectGoogleDrive = () => {
+        // Limpiar todos los datos de Google Drive
+        setSettings(prev => ({ 
+            ...prev, 
+            isDriveConnected: false,
+            driveAccountEmail: undefined,
+            driveStorageUsed: undefined,
+            driveStorageLimit: undefined,
+            driveLastSync: undefined,
+            driveFolderId: undefined
+        }));
+        
         toast({
             variant: "destructive",
             title: "Google Drive Desconectado",
-            description: "Su cuenta ha sido desconectada.",
+            description: "Su cuenta ha sido desconectada. Los documentos existentes permanecen en su Drive.",
         });
     };
 
+    const handleSaveConfig = () => {
+        if (!selectedIntegration) return;
+        
+        const integration = integrations.find(i => i.id === selectedIntegration);
+        if (!integration) return;
+
+        // Validate required fields
+        const missingFields = integration.configFields.filter(field => 
+            !configForm[field.key] || configForm[field.key].trim() === ''
+        );
+
+        if (missingFields.length > 0) {
+            toast({
+                variant: "destructive",
+                title: "Campos requeridos",
+                description: `Por favor complete: ${missingFields.map(f => f.label).join(', ')}`,
+            });
+            return;
+        }
+
+        // Update settings with config values and connection status
+        const updateKey = `is${selectedIntegration.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join('')}Connected` as keyof typeof settings;
+        
+        setSettings(prev => ({ 
+            ...prev, 
+            [updateKey]: true,
+            ...configForm
+        }));
+        
+        toast({
+            title: `${integration.name} Configurado`,
+            description: "La integración ha sido configurada y activada exitosamente.",
+        });
+        
+        setConfigDialogOpen(false);
+        setSelectedIntegration(null);
+        setConfigForm({});
+    };
+
+    // Funciones de notificaciones removidas para simplificar
+
+    const selectedIntegrationData = integrations.find(i => i.id === selectedIntegration);
+
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Google Drive</CardTitle>
-                <CardDescription>
-                    Conecte su cuenta de Google Drive para guardar automáticamente los documentos adjuntos (informes, permisos, etc.) de forma segura.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {settings.isDriveConnected ? (
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                        <p className="text-sm font-medium text-green-600">Conectado a Google Drive</p>
-                        <Button variant="destructive" size="sm" onClick={handleDisconnectDrive}>Desconectar</Button>
+        <div className="space-y-6">
+            {/* Integraciones */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Share2 className="h-5 w-5" />
+                        Integraciones
+                    </CardTitle>
+                    <CardDescription>
+                        Conecte servicios externos para ampliar las funcionalidades del sistema.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-6">
+                        {integrations.map((integration) => {
+                            const Icon = integration.icon;
+                            return (
+                                <div key={integration.id} className="border rounded-lg p-6">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 bg-muted rounded-lg">
+                                                <Icon className="h-6 w-6 text-muted-foreground" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-lg flex items-center gap-2">
+                                                    {integration.name}
+                                                    {integration.connected ? (
+                                                        <CheckCircle className="h-5 w-5 text-green-600" />
+                                                    ) : (
+                                                        <XCircle className="h-5 w-5 text-muted-foreground" />
+                                                    )}
+                                                </h4>
+                                                <p className="text-sm text-muted-foreground font-medium">
+                                                    {integration.connected ? 'Conectado' : 'No conectado'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <p className="text-muted-foreground mb-4 leading-relaxed">
+                                        {integration.description}
+                                    </p>
+                                    
+                                    {/* Información de cuenta para Google Drive */}
+                                    {integration.connected && integration.accountInfo && integration.id === 'google-drive' && (
+                                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                                <p className="text-sm font-medium text-green-800">Cuenta conectada</p>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <div className="flex justify-between items-center py-1">
+                                                    <span className="text-sm text-green-700">Email:</span>
+                                                    <span className="text-sm font-medium text-green-800">{integration.accountInfo.email}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center py-1">
+                                                    <span className="text-sm text-green-700">Almacenamiento:</span>
+                                                    <span className="text-sm font-medium text-green-800">{integration.accountInfo.storageUsed} de {integration.accountInfo.storageLimit}</span>
+                                                </div>
+                                                {integration.accountInfo.lastSync && (
+                                                    <div className="flex justify-between items-center py-1">
+                                                        <span className="text-sm text-green-700">Última sincronización:</span>
+                                                        <span className="text-sm font-medium text-green-800">{new Date(integration.accountInfo.lastSync).toLocaleString('es-ES')}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="mb-6">
+                                        <p className="text-sm font-medium text-muted-foreground mb-3">Características principales:</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {integration.features.map((feature, index) => (
+                                                <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <div className="h-1.5 w-1.5 bg-primary rounded-full" />
+                                                    {feature}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex gap-3">
+                                        {integration.connected ? (
+                                            <>
+                                                <Button 
+                                                    variant="outline" 
+                                                    className="flex-1"
+                                                    onClick={() => handleDisconnect(integration.id)}
+                                                >
+                                                    Desconectar
+                                                </Button>
+                                                {integration.configFields.length > 0 && (
+                                                    <Button 
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setSelectedIntegration(integration.id);
+                                                            setConfigForm({});
+                                                            setConfigDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        <Settings className="h-4 w-4 mr-2" />
+                                                        Configurar
+                                                    </Button>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <Button 
+                                                className="flex-1"
+                                                onClick={() => handleConnect(integration.id)}
+                                            >
+                                                Conectar
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground">
-                        La integración con Google Drive no está activa.
-                    </p>
-                )}
-            </CardContent>
-            {!settings.isDriveConnected && (
-                <CardFooter>
-                    <Button onClick={handleConnectDrive}>
-                        Conectar mi cuenta de Google Drive
-                    </Button>
-                </CardFooter>
-            )}
-        </Card>
-    )
+                </CardContent>
+            </Card>
+
+            {/* Dialog de configuración */}
+            <ResponsiveDialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+                <ResponsiveDialogContent className="sm:max-w-[500px]">
+                    <ResponsiveDialogHeader>
+                        <ResponsiveDialogTitle>
+                            Configurar {selectedIntegrationData?.name}
+                        </ResponsiveDialogTitle>
+                        <ResponsiveDialogDescription>
+                            Complete la configuración para activar esta integración.
+                        </ResponsiveDialogDescription>
+                    </ResponsiveDialogHeader>
+                    
+                    {selectedIntegrationData && (
+                        <div className="space-y-4 py-4">
+                            {selectedIntegrationData.configFields.map((field) => (
+                                <div key={field.key} className="space-y-2">
+                                    <Label htmlFor={field.key}>{field.label}</Label>
+                                    <Input
+                                        id={field.key}
+                                        type={field.type}
+                                        placeholder={field.placeholder}
+                                        value={configForm[field.key] || ''}
+                                        onChange={(e) => setConfigForm(prev => ({
+                                            ...prev,
+                                            [field.key]: e.target.value
+                                        }))}
+                                    />
+                                </div>
+                            ))}
+                            
+                            <div className="bg-muted/50 p-3 rounded-lg">
+                                <div className="flex items-start gap-2">
+                                    <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                    <div className="text-sm text-muted-foreground">
+                                        <p className="font-medium mb-1">Información importante:</p>
+                                        <ul className="space-y-0.5 text-xs">
+                                            {selectedIntegrationData.features.map((feature, index) => (
+                                                <li key={index}>• {feature}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <ResponsiveDialogFooter>
+                        <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleSaveConfig}>
+                            Guardar y Conectar
+                        </Button>
+                    </ResponsiveDialogFooter>
+                </ResponsiveDialogContent>
+            </ResponsiveDialog>
+        </div>
+    );
 }
 
 function UserManagement({ users, onEdit, onDelete, onAdd }: { users: UserProfile[], onEdit: (user: UserProfile) => void; onDelete: (user: UserProfile) => void; onAdd: () => void; }) {

@@ -24,6 +24,7 @@ import PageHeader from '@/components/page-header';
 import { StudentSummaryCard } from '@/components/organisms/student-summary-card';
 import { useSettings } from '@/hooks/use-settings';
 import { useToast } from '@/hooks/use-toast';
+import { useKeyboardScrollViewport } from '@/hooks/use-keyboard-scroll';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const neeSchema = z.object({
@@ -53,6 +54,7 @@ export default function NewNeePage() {
   const { addNee, neeDiagnosisTypes } = useNee();
   const { settings } = useSettings();
   const { toast } = useToast();
+  const containerRef = useKeyboardScrollViewport();
   
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -125,7 +127,7 @@ export default function NewNeePage() {
       <PageHeader
         title="Añadir Nuevo Registro NEE"
       />
-      <div>
+      <div ref={containerRef}>
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card>

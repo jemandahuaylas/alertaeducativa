@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import '@/styles/mobile-keyboard.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppProvider } from '@/context/app-context';
 import { SettingsProvider } from '@/context/settings-context';

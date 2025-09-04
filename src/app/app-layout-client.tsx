@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import AppShell from '@/components/organisms/app-shell';
 import { PageHeaderProvider } from '@/hooks/use-page-header';
 import { DynamicFavicon } from '@/components/dynamic-favicon';
+import { useMobileDetection, useVirtualKeyboard } from '@/hooks/use-mobile-detection';
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -30,6 +31,10 @@ function MainAppLayout({ children }: { children: React.ReactNode }) {
 export function AppLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+  
+  // Detectar dispositivo móvil y teclado virtual
+  useMobileDetection();
+  useVirtualKeyboard();
 
   if (isAuthPage) {
     return <AuthLayout>{children}</AuthLayout>;

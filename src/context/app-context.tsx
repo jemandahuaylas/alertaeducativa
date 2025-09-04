@@ -146,7 +146,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     nees: data?.nees ?? [],
     neeDiagnosisTypes: data?.neeDiagnosisTypes ?? [],
     profiles: data?.profiles ?? [],
-    settings: data?.settings ?? { isRegistrationEnabled: true, isDriveConnected: false, appName: "Alerta Educativa", institutionName: "Mi Institución", primaryColor: "#1F618D", logoUrl: "" },
+    settings: data?.settings ?? { 
+          isRegistrationEnabled: true, 
+          isDriveConnected: false, 
+          appName: "Alerta Educativa", 
+          institutionName: "Mi Institución", 
+          primaryColor: "#3B82F6", // Usar el mismo color por defecto que en CSS
+          logoUrl: "",
+          driveAccountEmail: undefined,
+          driveStorageUsed: undefined,
+          driveStorageLimit: undefined,
+          driveLastSync: undefined,
+          driveFolderId: undefined
+        },
     isLoading,
     session,
     currentUserProfile,

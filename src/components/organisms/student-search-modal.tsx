@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Student } from '@/core/domain/types';
 import { supabase } from '@/lib/supabase/client';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useKeyboardScrollViewport } from '@/hooks/use-keyboard-scroll';
 
 type StudentSearchModalProps = {
   isOpen: boolean;
@@ -17,13 +18,10 @@ type StudentSearchModalProps = {
   onSelectStudent: (student: Student) => void;
 };
 
-export function StudentSearchModal({
-  isOpen,
-  onOpenChange,
-  onSelectStudent,
-}: StudentSearchModalProps) {
+export default function StudentSearchModal({ isOpen, onOpenChange, onSelectStudent }: StudentSearchModalProps) {
+  const containerRef = useKeyboardScrollViewport();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Student[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
@@ -84,7 +82,7 @@ export function StudentSearchModal({
 
   return (
     <ResponsiveDialog open={isOpen} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="sm:max-w-md">
+      <ResponsiveDialogContent ref={containerRef} className="sm:max-w-[500px]">
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>Seleccionar Estudiante</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>

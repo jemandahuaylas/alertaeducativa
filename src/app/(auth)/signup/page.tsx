@@ -15,6 +15,7 @@ import { useSettings } from '@/hooks/use-settings';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { useKeyboardScrollViewport } from '@/hooks/use-keyboard-scroll';
 import * as authService from '@/core/services/auth-service';
 import Image from "next/image";
 
@@ -33,6 +34,7 @@ export default function SignupPage() {
   const { settings } = useSettings();
   const router = useRouter();
   const { toast } = useToast();
+  const containerRef = useKeyboardScrollViewport();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
@@ -90,7 +92,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto p-4">
+    <div ref={containerRef} className="w-full max-w-md mx-auto p-4">
         <div className="flex flex-col items-center justify-center text-center mb-6">
             <div className="mb-4">
                 {settings.logoUrl ? (

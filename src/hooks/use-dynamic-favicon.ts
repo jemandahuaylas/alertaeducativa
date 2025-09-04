@@ -7,6 +7,9 @@ export function useDynamicFavicon() {
   const { settings } = useSettings();
 
   useEffect(() => {
+    // Solo actualizar el favicon si los settings están completamente cargados
+    if (!settings) return;
+    
     const updateFavicon = async () => {
       // Obtener o crear el elemento link del favicon
       let favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
@@ -94,5 +97,5 @@ export function useDynamicFavicon() {
     };
 
     updateFavicon();
-  }, [settings.logoUrl, settings.primaryColor]);
+  }, [settings]);
 }

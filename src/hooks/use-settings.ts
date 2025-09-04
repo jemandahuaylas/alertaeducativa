@@ -8,8 +8,15 @@ export interface AppSettings {
   isDriveConnected: boolean;
   appName: string;
   institutionName: string;
-  logoUrl: string;
+  logoUrl?: string;
   primaryColor: string;
+  
+  // Google Drive Integration
+  driveAccountEmail?: string;
+  driveStorageUsed?: string;
+  driveStorageLimit?: string;
+  driveLastSync?: string;
+  driveFolderId?: string;
 }
 
 export function useSettings() {
