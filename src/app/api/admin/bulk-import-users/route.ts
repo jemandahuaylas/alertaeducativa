@@ -55,8 +55,7 @@ export async function POST(request: NextRequest) {
           console.error(`❌ Auth error for ${user.email}:`, authError);
           console.error(`❌ Auth error details:`, {
             message: authError.message,
-            status: authError.status,
-            statusText: authError.statusText
+            status: authError.status
           });
           
           if (authError.message.includes('already registered') || 

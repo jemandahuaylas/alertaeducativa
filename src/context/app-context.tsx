@@ -71,6 +71,7 @@ interface AppContextType extends Omit<AppData, 'grades' | 'assignments' | 'nees'
   setSettings: (value: AppSettings | ((val: AppSettings) => AppSettings)) => Promise<void>;
   addProfile: (profileData: UserProfileFormValues, isBulkImport?: boolean) => Promise<any>;
   bulkImportProfiles: (profilesData: Omit<UserProfile, 'id'>[]) => Promise<{imported: number; skipped: number; errors: string[]} | null>;
+  refreshProfiles: () => Promise<void>;
   editProfile: (profileId: string, profileData: UserProfileFormValues) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
 }
